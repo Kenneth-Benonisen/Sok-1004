@@ -483,7 +483,28 @@ prisøkning_18_20
 
 
 
+# Deretter gjør vi beregning via KPI. 
 
+kpi18_ris <- tabell_ris %>%
+  mutate(year=year(dato)) %>% 
+  filter(dato=="2018-10-01") %>%
+  summarise(mean(KPI))
+
+
+kpi20_ris <- tabell_ris %>%
+  mutate(year=year(dato)) %>% 
+  filter(dato=="2020-09-01") %>%
+  summarise(mean(KPI))
+
+
+# Finner ut differansen mellom KPI hentet ssb for perioden oktober 2018 og september 2020 spesifikt på produktet ris, vi ser at det er en økning på 9.6%. 
+
+Kpiøkning_ris = kpi20_ris - kpi18_ris
+Kpiøkning_ris
+
+# vi oppserverer en prisøkning for ris på 42.92% i mellom perioden 2018 til 2020 på VGmatbørs. 
+# Dataen hentet fra SSB for KPI på produktet ris under samme periode viser en økning på 9.6% 
+# Det ser ut som at matvareprisen har økt betraktelig mer enn KPI for samme periode. 
 
 
 #-------------------------------------------------------------------------------
@@ -527,8 +548,7 @@ tabell2 %>%
 # Beregn også dette forholdet i prosent.
 
 
-
-## Han har allerede kodet det for oss, se nedfor?
+# Det ser ut som oppgaven allerede er besvart. Vi har ingenting å tilføye. 
 
 
 
@@ -557,7 +577,6 @@ tabell2 %>%
 
 
 #-------------------------------------------------------------------------------
-
 # oppgave 5 - Finn ut hvor mange måneder det gikk før den kumulative endringen i konsumprisindeksen var henholdsvis 50, 100 og 150 prosent.
 
 # lager en egen tabell for endringen mellom 50 og 100.
@@ -587,3 +606,5 @@ tibble(filtrert_100_150)
 filtrert_50_150 <- test %>% 
   filter(kumulativKPI >= 50 & kumulativKPI <= 150)
 tibble(filtrert_50_150)
+
+
