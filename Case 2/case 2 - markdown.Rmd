@@ -1,0 +1,150 @@
+---
+title: "Arbeidskrav 4, case 2 - BNP 1865-2011"
+author: "Tore Birkelund, Kenneth Benonisen"
+date: "28 9 2021"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(comment=NA)
+## --------------------------------------------------------------------------------------------------------------------------------
+library(tidyverse)
+  library(rvest)
+  library(PxWebApiData)
+## --------------------------------------------------------------------------------------------------------------------------------
+webpage <- read_html("https://www.ssb.no/a/histstat/aarbok/ht-0901-bnp.html")
+tabell <- html_table(html_nodes(webpage, "table")[[2]])
+## --------------------------------------------------------------------------------------------------------------------------------
+tabell <- tabell %>% drop_na()
+## --------------------------------------------------------------------------------------------------------------------------------
+names(tabell) <- c("År", "BNP", "BNP_endring",
+                   "BNP_percap", "BNP_percap_endring")
+tabell <- as_tibble(tabell)
+tabell
+## --------------------------------------------------------------------------------------------------------------------
+tabell <-
+  tabell %>% 
+  mutate(BNP=str_replace_all(BNP, " ", ""),
+         BNP_endring=na_if(BNP_endring, ""),
+         BNP_percap_endring=na_if(BNP_percap_endring, ""),
+         BNP_endring=str_replace(BNP_endring, ",","."),
+         BNP_percap_endring=str_replace(BNP_percap_endring, ",",".")) %>% 
+  mutate_if(is.character, as.numeric)
+tabell
+  
+```
+
+### Oppgave 1 - lag et plot med BNP per innbygger i perioden.
+
+Vi henter og bruker den gitte tabellen som er ved case 2 for å produsere et plot hvor vi ser BNP per innbygger. 
+
+```{r}
+tabell %>%
+  ggplot(aes(x=År)) +
+  geom_line(aes(y=BNP_percap), color="dark red") +
+  scale_y_continuous(labels = scales::comma) +
+  labs(title="BNP per innbygger fra 1865 til 2011",
+       x="År",
+       y="Kroner") +
+  theme_bw() 
+```
+
+\newpage
+
+### Oppgave 2 - Gitt disse dataene, er det en annen viktig variabel som vi kan beregne ut fra dem, i så fall hvilken?
+
+Med gitte data kan vi beregne befolkning. Vi benytter mutate for å dele BNP med BNP per cap, og ganger dette med en million ettersom BNP er oppgitt i millioner.
+
+
+```{r}
+tabell %>%
+  mutate(befolkningen = 1000000*(BNP /BNP_percap)) %>%
+  ggplot(aes(x=År)) +
+  geom_line(aes(y=befolkningen), color="dark Blue") +
+  geom_line(aes(y=BNP_percap), color="dark red") +
+  scale_y_continuous(labels = scales::comma) +
+  labs(title="Innbyggere(blå linje) BNP per innbygger (rød linje)",
+       x="År",
+       y=" ") +
+  theme_bw() 
+```
+
+\newpage
+
+### Oppgave 3 - Denne tabellen inneholder årlige BNP data frem til 2011. I det forrige caset så vi på nyere månedlige BNP tall. I denne oppgaven skal du spleise de to BNP seriene til en lang tabell, per år.
+
+Først henter vi BNP fra første case. 
+
+```{r}
+variabler <- ApiData("http://data.ssb.no/api/v0/no/table/09842", returnMetaFrames = TRUE)
+  names(variabler)
+## --------------------------------------------------------------------------------------------------------------------
+verdier <- ApiData("https://data.ssb.no/api/v0/no/table/09842/", returnMetaData = TRUE)
+  #verdier
+## --------------------------------------------------------------------------------------------------------------------
+case.1.tabell <- ApiData("https://data.ssb.no/api/v0/no/table/09842/",
+                  Tid = paste(1970:2019),
+                  ContentsCode = "BNP")
+## --------------------------------------------------------------------------------------------------------------------
+bnp <- case.1.tabell[[1]]
+## --------------------------------------------------------------------------------------------------------------------
+bnp <- bnp %>%
+ mutate(år=parse_number(år)) %>%
+ rename(BNP=value) %>%
+ rename(År=år)
+tibble(bnp)
+## --------------------------------------------------------------------------------------------------------------------
+bnp <- bnp %>%
+  select(År, BNP)
+tibble(bnp)
+```
+
+Nå som vi har fremkallet tabellene fra første case og vi har tabellene fra andre case kan vi kombinerer de med bind_rows funksjon. Vi vil også mutere bokstaver og integers til numeric slik at hele tabellen blir dbl (double).\
+
+```{r}
+## --------------------------------------------------------------------------------------------------------------------
+combined_df <- bind_rows(tabell, bnp)
+## --------------------------------------------------------------------------------------------------------------------
+combined_df <- combined_df %>%
+  mutate_if(is.character, ~as.numeric(.)) %>%
+  mutate_if(is.integer, ~as.numeric(.))
+```
+
+Deretter printer vi hele tabellen. Ut ifra hva vi kan observere så får vi ikke tallene til å stemme med hverandre, det kan virke som BNP er beregnet på noe ulike metoder ettersom tallene fra første case er vesentlig lavere enn tallene som ligger til grunn fra case 2. 
+
+```{r}
+combined_df %>% as_tibble() %>% print(n=197)
+```
+\newpage
+
+alternativt fortsetter vi for case 2 tabellen ettersom første case går frem til 2019.\
+
+```{r}
+variabler2 <- ApiData("http://data.ssb.no/api/v0/no/table/09842", returnMetaFrames = TRUE)
+  names(variabler2)
+## --------------------------------------------------------------------------------------------------------------------
+verdier2 <- ApiData("https://data.ssb.no/api/v0/no/table/09842/", returnMetaData = TRUE)
+## --------------------------------------------------------------------------------------------------------------------
+case.1.tabell2 <- ApiData("https://data.ssb.no/api/v0/no/table/09842/",
+                  Tid = paste(2012:2019),
+                  ContentsCode = "BNP")
+## --------------------------------------------------------------------------------------------------------------------
+bnp2 <- case.1.tabell2[[1]]
+## --------------------------------------------------------------------------------------------------------------------
+bnp2 <- bnp2 %>%
+ mutate(år=parse_number(år)) %>%
+ rename(BNP=value) %>%
+ rename(År=år)
+## --------------------------------------------------------------------------------------------------------------------
+bnp2 <- bnp2 %>%
+  select(År, BNP)
+## --------------------------------------------------------------------------------------------------------------------
+combined_df2 <- bind_rows(tabell, bnp2)
+## --------------------------------------------------------------------------------------------------------------------
+combined_df2 <- combined_df2 %>%
+  mutate_if(is.character, ~as.numeric(.)) %>%
+  mutate_if(is.integer, ~as.numeric(.))
+combined_df2 %>% as_tibble() %>% print(n=155)
+```
